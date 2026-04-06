@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Siswa Modern</title>
+
+<style>
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        background: linear-gradient(135deg, #1e3c72, #2a5298);
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    h2 {
+        text-align: center;
+        color: white;
+        margin-bottom: 20px;
+    }
+
+    .wrapper {
+        width: 100%;
+        padding: 30px;
+    }
+
+    .container {
+        background: #ffffff;
+        padding: 25px;
+        border-radius: 15px;
+        max-width: 900px;
+        margin: auto;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .form-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+    }
+
+    input {
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        transition: 0.2s;
+    }
+
+    input:focus {
+        border-color: #2a5298;
+        outline: none;
+        box-shadow: 0 0 5px rgba(42,82,152,0.5);
+    }
+
+    button {
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: 0.2s;
+    }
+
+    .btn-simpan {
+        background: #2ecc71;
+        color: white;
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .btn-edit { background: #f39c12; color: white; }
+    .btn-hapus { background: #e74c3c; color: white; }
+
+    button:hover {
+        transform: scale(1.05);
+    }
+
+    .search {
+        margin-top: 15px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+
+    th {
+        background: #2a5298;
+        color: white;
+    }
+
+    th, td {
+        padding: 10px;
+        text-align: center;
+        border: 1px solid #ddd;
+    }
+
+    tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+
+    tfoot td {
+        font-weight: bold;
+        background: #eef3ff;
+    }
+
+    .empty {
+        text-align: center;
+        padding: 15px;
+        color: #888;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="wrapper">
+<h2>📚 Data Siswa</h2>
+
+<div class="container">
+
+    <div class="form-group">
+        <input type="text" id="nama" placeholder="Nama">
+        <input type="text" id="kelas" placeholder="Kelas">
+        <input type="number" id="nilai" placeholder="Nilai (0-100)" min="0" max="100">
+    </div>
+
+    <button class="btn-simpan" onclick="simpan()">💾 Simpan</button>
+
+    <div class="search">
+        <input type="text" id="cari" placeholder="Cari nama siswa..." oninput="tampil()">
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Nama</th>
+                <th>Kelas</th>
+                <th>Nilai</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="data"></tbody>
+        <tfoot>
+            <tr>
+                <td colspan="2">Rata-rata</td>
+                <td id="rata"></td>
+                <td>-</td>
+            </tr>
+        </tfoot>
+    </table>
+
+</div>
+</div>
+
+<script>
+let siswa = JSON.parse(localStorage.getItem("siswa")) || [];
+let indexEdit = null;
+
+function tampil() {
+    const tbody = document.getElementById("data");
+    const keyword = document.getElementById("cari").value.toLowerCase();
+    tbody.innerHTML = "";
+
+    let total = 0;
+    let count = 0;
+
+    siswa.forEach((s, i) => {
+        if (!s.nama.toLowerCase().includes(keyword)) return;
+
+        total += s.nilai;
+        count++;
+
+        tbody.innerHTML += `
+        <tr>
+            <td>${s.nama}</td>
+            <td>${s.kelas}</td>
+            <td>${s.nilai}</td>
+            <td>
+                <button class="btn-edit" onclick="edit(${i})">Edit</button>
+                <button class="btn-hapus" onclick="hapus(${i})">Hapus</button>
+            </td>
+        </tr>`;
+    });
+
+    if (count === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="empty">Tidak ada data</td></tr>`;
+        document.getElementById("rata").innerText = "0";
+    } else {
+        document.getElementById("rata").innerText = (total / count).toFixed(2);
+    }
+
+    localStorage.setItem("siswa", JSON.stringify(siswa));
+}
+
+function simpan() {
+    const nama = document.getElementById("nama").value.trim();
+    const kelas = document.getElementById("kelas").value.trim();
+    const nilai = parseFloat(document.getElementById("nilai").value);
+
+    if (!nama || !kelas || isNaN(nilai)) {
+        alert("Isi semua data!");
+        return;
+    }
+
+    if (nilai < 0 || nilai > 100) {
+        alert("Nilai harus 0-100!");
+        return;
+    }
+
+    const dataBaru = { nama, kelas, nilai };
+
+    if (indexEdit === null) {
+        siswa.push(dataBaru);
+    } else {
+        siswa[indexEdit] = dataBaru;
+        indexEdit = null;
+    }
+
+    resetForm();
+    tampil();
+}
+
+function edit(i) {
+    const s = siswa[i];
+    document.getElementById("nama").value = s.nama;
+    document.getElementById("kelas").value = s.kelas;
+    document.getElementById("nilai").value = s.nilai;
+    indexEdit = i;
+}
+
+function hapus(i) {
+    if (confirm("Yakin hapus?")) {
+        siswa.splice(i, 1);
+        tampil();
+    }
+}
+
+function resetForm() {
+    document.getElementById("nama").value = "";
+    document.getElementById("kelas").value = "";
+    document.getElementById("nilai").value = "";
+}
+
+tampil();
+</script>
+
+</body>
+</html>
